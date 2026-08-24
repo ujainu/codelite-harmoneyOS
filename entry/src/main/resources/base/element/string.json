@@ -1,0 +1,7 @@
+{
+  "string": [
+    { "name": "module_desc", "value": "FW-2 NativeWindow Attach host" },
+    { "name": "EntryAbility_desc", "value": "FW-2 Host Ability" },
+    { "name": "EntryAbility_label", "value": "FW2 Host" }
+  ]
+}

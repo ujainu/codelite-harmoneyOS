@@ -1,0 +1,238 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 83e5721..e6c297f 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -40,13 +40,23 @@ cmake_minimum_required(VERSION 3.16)
+ # ##############################################################################
+ 
+ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
+-include(OSXDeps)
+ 
+ # ##############################################################################
+ # Defaults
+ # ##############################################################################
+ project("CodeLite")
+ 
++# OSXDeps must run AFTER project() so if(APPLE) means the *target* platform.
++# Before project(), APPLE reflects the *host* (e.g. macOS) and incorrectly
++# bootstraps OpenSSL/libssh when cross-compiling to OHOS/Linux from a Mac.
++include(OSXDeps)
++
++# OHOS: prepend so cmake/Modules/FindwxWidgets.cmake shadows the stock module
++# and reuses top-level seeded wxWidgets_* for nested find_package() calls.
++if(CMAKE_SYSTEM_NAME STREQUAL "OHOS")
++  set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/Modules/" ${CMAKE_MODULE_PATH})
++endif()
++
+ set(CMAKE_CXX_STANDARD 20)
+ set(CMAKE_CXX_STANDARD_REQUIRED ON)
+ set(CMAKE_CXX_EXTENSIONS OFF)
+@@ -466,8 +476,9 @@ if(WITH_SFTP)
+   message("-- LIBSSH_LIB is set to ${LIBSSH_LIB}")
+ endif(WITH_SFTP)
+ 
+-# On UNIX we require GTK
+-if(UNIX AND NOT APPLE)
++# On UNIX we require GTK (Linux desktop wxGTK builds).
++# HarmonyOS PC uses wxOHOS — do NOT require GTK (ADR-0002).
++if(UNIX AND NOT APPLE AND NOT CMAKE_SYSTEM_NAME STREQUAL "OHOS")
+   if(GTK_VERSION EQUAL 3)
+     set(OLD_CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH}) # Cache the current value
+     set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH}
+@@ -489,7 +500,7 @@ if(UNIX AND NOT APPLE)
+     endif(GTK2_FOUND)
+   endif()
+ 
+-endif(UNIX AND NOT APPLE)
++endif()
+ 
+ # find wxWidgets once
+ if(MINGW)
+@@ -544,22 +555,77 @@ if(MINGW)
+   endif()
+ 
+ else()
+-  set(wxWidgets_DIR "${CMAKE_BINARY_DIR}/.build-release/wxWidgets-install/lib/cmake/wxWidgets")
+-  find_package(
+-    wxWidgets
+-    COMPONENTS adv
+-               aui
+-               base
+-               core
+-               html
+-               propgrid
+-               xml
+-               xrc
+-               net
+-               stc
+-               ribbon
+-               richtext
+-    REQUIRED)
++  if(CMAKE_SYSTEM_NAME STREQUAL "OHOS")
++    # FindwxWidgets (Module mode) fails for OHOS cross-builds:
++    # 1) CMAKE_FIND_ROOT_PATH_MODE_LIBRARY=ONLY cannot see libs outside the
++    #    OHOS sysroot (our build-wx/lib lives in the workspace).
++    # 2) wx-config emits -l names for libraries not present on disk yet
++    #    (net/xml/GUI). FindwxWidgets then clears wxWidgets_LIBRARIES.
++    # Seed the same variables FindwxWidgets would set, using an absolute
++    # path to the base library we actually have. GUI libs are a later,
++    # compile-driven concern — not Gate 4.2 demo work.
++    if(NOT WX_TOOL)
++      message(
++        FATAL_ERROR
++          "OHOS: pass -DWITH_WX_CONFIG=/path/to/build-wx/wx-config")
++    endif()
++    get_filename_component(_CL_WX_PREFIX "${WX_TOOL}" DIRECTORY)
++    set(_CL_WX_LIBDIR "${_CL_WX_PREFIX}/lib")
++    set(_CL_WX_BASE_LIB "${_CL_WX_LIBDIR}/libwx_baseu-3.3-OHOS.so")
++    if(NOT EXISTS "${_CL_WX_BASE_LIB}")
++      message(FATAL_ERROR "OHOS: missing wx base library: ${_CL_WX_BASE_LIB}")
++    endif()
++
++    execute_process(
++      COMMAND sh "${WX_TOOL}" --cxxflags
++      OUTPUT_VARIABLE _CL_WX_CXXFLAGS
++      RESULT_VARIABLE _CL_WX_RET
++      OUTPUT_STRIP_TRAILING_WHITESPACE)
++    if(NOT _CL_WX_RET EQUAL 0)
++      message(FATAL_ERROR "OHOS: ${WX_TOOL} --cxxflags failed")
++    endif()
++
++    set(wxWidgets_INCLUDE_DIRS "")
++    set(wxWidgets_DEFINITIONS "")
++    set(wxWidgets_CXX_FLAGS "")
++    separate_arguments(_CL_WX_CXXFLAGS_LIST NATIVE_COMMAND
++                       "${_CL_WX_CXXFLAGS}")
++    foreach(_arg IN LISTS _CL_WX_CXXFLAGS_LIST)
++      if("${_arg}" MATCHES "^-I(.*)$")
++        list(APPEND wxWidgets_INCLUDE_DIRS "${CMAKE_MATCH_1}")
++      elseif("${_arg}" MATCHES "^-D(.*)$")
++        list(APPEND wxWidgets_DEFINITIONS "${CMAKE_MATCH_1}")
++      else()
++        list(APPEND wxWidgets_CXX_FLAGS "${_arg}")
++      endif()
++    endforeach()
++
++    set(wxWidgets_LIBRARY_DIRS "${_CL_WX_LIBDIR}")
++    set(wxWidgets_LIBRARIES "${_CL_WX_BASE_LIB}")
++    set(wxWidgets_FOUND TRUE)
++    set(wxWidgets_USE_FILE "${CMAKE_ROOT}/Modules/UsewxWidgets.cmake")
++    message(STATUS "OHOS: seeded wxWidgets from ${WX_TOOL} (base only)")
++    message(STATUS "OHOS: wxWidgets_LIBRARIES=${wxWidgets_LIBRARIES}")
++  else()
++    set(wxWidgets_DIR
++        "${CMAKE_BINARY_DIR}/.build-release/wxWidgets-install/lib/cmake/wxWidgets"
++    )
++    find_package(
++      wxWidgets
++      COMPONENTS adv
++                 aui
++                 base
++                 core
++                 html
++                 propgrid
++                 xml
++                 xrc
++                 net
++                 stc
++                 ribbon
++                 richtext
++      REQUIRED)
++  endif()
+ endif()
+ 
+ if(AUTOGEN_REVISION MATCHES 0)
+@@ -1048,9 +1114,17 @@ endif()
+ set(ASSISTANTLIB_BUILD_EXAMPLE
+     OFF
+     CACHE BOOL "Do not build OllamLib example program")
+-set(ASSISTANTLIB_WITH_OPENSSL
+-    ON
+-    CACHE BOOL "Assistant lib is buil with TLS support")
++# Assistant TLS needs OpenSSL. OHOS sysroot has no OpenSSL (only net_ssl);
++# do not vendor OpenSSL for Configure — disable TLS here (E001 lesson).
++if(CMAKE_SYSTEM_NAME STREQUAL "OHOS")
++  set(ASSISTANTLIB_WITH_OPENSSL
++      OFF
++      CACHE BOOL "Assistant TLS (requires OpenSSL)" FORCE)
++else()
++  set(ASSISTANTLIB_WITH_OPENSSL
++      ON
++      CACHE BOOL "Assistant lib is buil with TLS support")
++endif()
+ add_subdirectory("${CL_SRC_ROOT}/submodules/assistant")
+ 
+ add_subdirectory(wxcrafter)
+diff --git a/Plugin/CMakeLists.txt b/Plugin/CMakeLists.txt
+index 7e4f73e..160d589 100644
+--- a/Plugin/CMakeLists.txt
++++ b/Plugin/CMakeLists.txt
+@@ -16,6 +16,12 @@ elseif(APPLE)
+   file(GLOB_RECURSE SRCS "*.cpp" "*.h" "*.hpp")
+   list(FILTER SRCS EXCLUDE REGEX ".*/msw/.*")
+   list(FILTER SRCS EXCLUDE REGEX ".*/gtk/.*")
++elseif(CMAKE_SYSTEM_NAME STREQUAL "OHOS")
++  # wxOHOS — no MSW / macOS / GTK platform backends
++  file(GLOB_RECURSE SRCS "*.cpp" "*.h" "*.hpp")
++  list(FILTER SRCS EXCLUDE REGEX ".*/msw/.*")
++  list(FILTER SRCS EXCLUDE REGEX ".*/macos/.*")
++  list(FILTER SRCS EXCLUDE REGEX ".*/gtk/.*")
+ else()
+   file(GLOB_RECURSE SRCS "*.cpp" "*.h" "*.hpp")
+   list(FILTER SRCS EXCLUDE REGEX ".*/msw/.*")
+@@ -45,8 +51,8 @@ if(USE_PCH AND NOT MINGW)
+   add_definitions(-Winvalid-pch)
+ endif()
+ 
+-# On UNIX we require GTK
+-if(UNIX AND NOT APPLE)
++# On UNIX we require GTK (Linux desktop wxGTK). Skip on HarmonyOS (wxOHOS).
++if(UNIX AND NOT APPLE AND NOT CMAKE_SYSTEM_NAME STREQUAL "OHOS")
+   if(GTK_VERSION EQUAL 3)
+     set(OLD_CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH}) # Cache the current value
+     set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH}
+@@ -68,7 +74,7 @@ if(UNIX AND NOT APPLE)
+     endif(GTK2_FOUND)
+   endif()
+ 
+-endif(UNIX AND NOT APPLE)
++endif()
+ 
+ # Additional libraries for UNIX-like systems
+ set(ADDITIONAL_LIBRARIES "")
+@@ -78,8 +84,10 @@ if(UNIX)
+     set(ADDITIONAL_LIBRARIES "-lkvm -lutil")
+   elseif(IS_NETBSD)
+     set(ADDITIONAL_LIBRARIES "-lutil")
+-  elseif(UNIX AND NOT APPLE)
++  elseif(UNIX AND NOT APPLE AND NOT CMAKE_SYSTEM_NAME STREQUAL "OHOS")
+     set(ADDITIONAL_LIBRARIES "-ldl -lutil -lgobject-2.0")
++  elseif(CMAKE_SYSTEM_NAME STREQUAL "OHOS")
++    set(ADDITIONAL_LIBRARIES "-ldl")
+   else()
+     set(ADDITIONAL_LIBRARIES "-ldl")
+   endif()
+diff --git a/Plugins/DatabaseExplorer/CMakeLists.txt b/Plugins/DatabaseExplorer/CMakeLists.txt
+index e309bad..9bfa6fc 100644
+--- a/Plugins/DatabaseExplorer/CMakeLists.txt
++++ b/Plugins/DatabaseExplorer/CMakeLists.txt
+@@ -46,8 +46,8 @@ if(WITH_POSTGRES)
+   endif()
+ endif()
+ 
+-# On UNIX we require GTK
+-if(UNIX AND NOT APPLE)
++# On UNIX we require GTK (Linux desktop wxGTK). Skip on HarmonyOS (wxOHOS).
++if(UNIX AND NOT APPLE AND NOT CMAKE_SYSTEM_NAME STREQUAL "OHOS")
+ 
+   if(GTK_VERSION EQUAL 3)
+     set(OLD_CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH}) # Cache the current value
+@@ -70,7 +70,7 @@ if(UNIX AND NOT APPLE)
+     endif(GTK2_FOUND)
+   endif()
+ 
+-endif(UNIX AND NOT APPLE)
++endif()
+ 
+ if(USE_PCH AND NOT MINGW)
+   add_definitions(-include "${CL_PCH_FILE}")

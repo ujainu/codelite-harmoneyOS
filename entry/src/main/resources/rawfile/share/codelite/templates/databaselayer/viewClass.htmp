@@ -1,0 +1,25 @@
+#ifndef %%classItemDef%%
+#define %%classItemDef%%
+
+#include <string>
+
+// %%classTableName%% //////////////////////////////////////////////////////////
+
+/*! \brief Class for %%classTableName%% table */
+class %%classItemName%% {
+
+public:
+	/*! \brief Data record constructor */
+	%%classItemName%%(
+				%%classItemAddParameters%%
+				);
+	
+	/*! \brief Public data accessors */
+	%%classItemGetters%%
+	
+protected:
+
+	%%classItemVariables%%
+};
+
+#endif // %%classItemDef%%

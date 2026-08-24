@@ -1,0 +1,10 @@
+{
+  "modelVersion": "6.1.1",
+  "name": "entry",
+  "version": "1.0.0",
+  "description": "FW-2 host entry",
+  "main": "",
+  "author": "",
+  "license": "",
+  "dependencies": {}
+}

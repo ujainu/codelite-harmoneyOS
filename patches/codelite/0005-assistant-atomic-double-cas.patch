@@ -1,0 +1,16 @@
+diff --git a/submodules/assistant/assistant/client/client_base.hpp b/submodules/assistant/assistant/client/client_base.hpp
+--- a/submodules/assistant/assistant/client/client_base.hpp
++++ b/submodules/assistant/assistant/client/client_base.hpp
+@@ -527,7 +527,12 @@
+ 
+   inline void SetLastRequestCost(double cost) {
+     m_last_request_amount = cost;
+-    m_total_amount += cost;
++    // libc++ (OHOS): std::atomic<double> has no operator+= / fetch_add.
++    // Portable RMW via compare_exchange (same semantics as a += cost).
++    double expected = m_total_amount.load();
++    while (!m_total_amount.compare_exchange_weak(expected, expected + cost)) {
++    }
+   }
+ 
+   inline double GetLastRequestCost() const { return m_last_request_amount; }

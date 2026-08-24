@@ -1,0 +1,12 @@
+#include <wx/wx.h>	// Includes all the standard things
+
+int main(int argc, char **argv) 
+{
+	//Initialize the wxWidgets library
+	wxInitializer initializer;
+	
+	//Print the classic hello world
+	wxString msg(wxT("Hello World"));
+	wxPrintf(wxT("%s\n"), msg.GetData());
+	return 0;
+}

@@ -1,0 +1,10 @@
+#include "%%classItemName%%.h"
+
+// %%classTableName%% //////////////////////////////////////////////////////////
+
+%%classItemName%%::%%classItemName%%(
+			%%classItemAddParameters%%
+			)
+{
+	%%classItemSetParams%%
+}

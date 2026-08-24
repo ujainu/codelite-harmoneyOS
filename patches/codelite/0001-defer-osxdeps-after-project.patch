@@ -1,0 +1,23 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 83e5721..eabaadb 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -40,13 +40,17 @@ cmake_minimum_required(VERSION 3.16)
+ # ##############################################################################
+ 
+ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
+-include(OSXDeps)
+ 
+ # ##############################################################################
+ # Defaults
+ # ##############################################################################
+ project("CodeLite")
+ 
++# OSXDeps must run AFTER project() so if(APPLE) means the *target* platform.
++# Before project(), APPLE reflects the *host* (e.g. macOS) and incorrectly
++# bootstraps OpenSSL/libssh when cross-compiling to OHOS/Linux from a Mac.
++include(OSXDeps)
++
+ set(CMAKE_CXX_STANDARD 20)
+ set(CMAKE_CXX_STANDARD_REQUIRED ON)
+ set(CMAKE_CXX_EXTENSIONS OFF)

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CodeLite Version="2.0.2">
+  <Options/>
+  <ArchiveObject Name="LexerTheme">
+    <wxString Value="Default" Name="m_value"/>
+  </ArchiveObject>
+  <ArchiveObject Name="SingleInstance">
+    <long Value="0" Name="m_value"/>
+  </ArchiveObject>
+  <ArchiveObject Name="WordHighlightColour">
+    <wxString Value="yellow" Name="m_value"/>
+  </ArchiveObject>
+  <ArchiveObject Name="highlight_word">
+    <long Value="1" Name="m_value"/>
+  </ArchiveObject>
+  <ArchiveObject Name="GenerateFullPathMakefile">
+    <long Value="1" Name="m_value"/>
+  </ArchiveObject>
+</CodeLite>

@@ -1,0 +1,77 @@
+diff --git a/build/cmake/files.cmake b/build/cmake/files.cmake
+index 3fd0833..86e4bb0 100644
+--- a/build/cmake/files.cmake
++++ b/build/cmake/files.cmake
+@@ -1934,6 +1934,25 @@ set(DFB_LOWLEVEL_HDR
+     wx/dfb/wrapdfb.h
+ )
+ 
++# HarmonyOS PC platform skeleton (Phase 4) — expand as port grows.
++set(OHOS_LOWLEVEL_SRC
++    src/ohos/app.cpp
++    src/ohos/evtloop.cpp
++    src/ohos/window.cpp
++    src/ohos/display.cpp
++    src/ohos/timer.cpp
++)
++
++set(OHOS_LOWLEVEL_HDR
++    wx/ohos/app.h
++    wx/ohos/chkconf.h
++    wx/ohos/display.h
++    wx/ohos/evtloop.h
++    wx/ohos/private.h
++    wx/ohos/timer.h
++    wx/ohos/window.h
++)
++
+ set(OSX_LOWLEVEL_SRC
+     # Shared wxMac and wxCocoa files
+     #TODO:     <if cond="PLATFORM_MACOSX=='1'">
+diff --git a/build/cmake/lib/core/CMakeLists.txt b/build/cmake/lib/core/CMakeLists.txt
+index 68f139b..6e7fc4c 100644
+--- a/build/cmake/lib/core/CMakeLists.txt
++++ b/build/cmake/lib/core/CMakeLists.txt
+@@ -57,6 +57,9 @@ elseif(WXQT)
+     endif()
+ elseif(WXX11)
+     wx_append_sources(CORE_SRC X11_LOWLEVEL)
++elseif(WXOHOS)
++    # Phase 4: platform skeleton only — full GUI core wiring is follow-up work.
++    wx_append_sources(CORE_SRC OHOS_LOWLEVEL)
+ endif()
+ 
+ wx_add_library(wxcore ${CORE_SRC})
+diff --git a/build/cmake/toolkit.cmake b/build/cmake/toolkit.cmake
+index ab997cc..f7e2887 100644
+--- a/build/cmake/toolkit.cmake
++++ b/build/cmake/toolkit.cmake
+@@ -31,8 +31,9 @@ elseif(APPLE)
+     set(wxTOOLKIT_OPTIONS osx_cocoa gtk2 gtk3 gtk4 qt)
+     set(wxPLATFORM OSX)
+ elseif(UNIX)
++    # OHOS cross builds report as UNIX-like; offer ohos toolkit alongside GTK/Qt.
+     set(wxDEFAULT_TOOLKIT gtk3)
+-    set(wxTOOLKIT_OPTIONS gtk2 gtk3 gtk4 qt)
++    set(wxTOOLKIT_OPTIONS gtk2 gtk3 gtk4 qt ohos)
+     set(wxPLATFORM UNIX)
+ else()
+     message(FATAL_ERROR "Unsupported platform")
+@@ -52,10 +53,17 @@ elseif(wxBUILD_TOOLKIT MATCHES "^osx*")
+     set(WXOSX ON)
+ elseif(wxBUILD_TOOLKIT MATCHES "qt")
+     set(WXQT ON)
++elseif(wxBUILD_TOOLKIT STREQUAL "ohos")
++    set(WXOHOS ON)
+ endif()
+ 
+ set(wxTOOLKIT_DEFINITIONS __WX${wxBUILD_TOOLKIT_UPPER}__)
+ 
++# HarmonyOS: toolkit is ohos even when host CMake sees UNIX.
++if(WXOHOS)
++    set(wxTOOLKIT_DEFINITIONS __WXOHOS__)
++endif()
++
+ if(NOT wxUSE_GUI)
+     set(wxBUILD_TOOLKIT "base")
+     string(TOUPPER ${wxBUILD_TOOLKIT} wxBUILD_TOOLKIT_UPPER)

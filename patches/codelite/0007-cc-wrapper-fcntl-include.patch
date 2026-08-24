@@ -1,0 +1,12 @@
+diff --git a/codelite/submodules/cc-wrapper/src/unixproc.cpp b/codelite/submodules/cc-wrapper/src/unixproc.cpp
+index 2f515fc..72e0732 100644
+--- a/codelite/submodules/cc-wrapper/src/unixproc.cpp
++++ b/codelite/submodules/cc-wrapper/src/unixproc.cpp
+@@ -1,6 +1,7 @@
+ #ifndef _WIN32
+ // Unix version
+ #include <errno.h>
++#include <fcntl.h>
+ #include <signal.h>
+ #include <stdio.h>
+ #include <string.h>

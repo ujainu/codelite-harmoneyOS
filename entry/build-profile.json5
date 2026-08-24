@@ -1,0 +1,29 @@
+{
+  "apiType": "stageMode",
+  "buildOption": {
+    "externalNativeOptions": {
+      "path": "./src/main/cpp/CMakeLists.txt",
+      "arguments": "",
+      "cppFlags": ""
+    },
+    "nativeLib": {
+      // HAP binxo/strip removed wxOhos_P3_* (+ Bitmap RGBA helpers) from
+      // libwx_ohosu_core even while libentry still needed the symbol → dlopen fail.
+      "debugSymbol": {
+        "strip": true,
+        "exclude": [
+          "**/libwx_ohosu_core*.so*"
+        ]
+      },
+      "excludeSoFromBinXO": [
+        "libwx_ohosu_core*"
+      ]
+    }
+  },
+  "targets": [
+    {
+      "name": "default",
+      "runtimeOS": "HarmonyOS"
+    }
+  ]
+}

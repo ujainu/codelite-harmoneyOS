@@ -1,0 +1,8 @@
+{
+  "modelVersion": "6.1.1",
+  "name": "fw2host",
+  "version": "1.0.0",
+  "description": "FW-2 Host Integration: XComponent → wxOhos_AttachToTopWindow",
+  "dependencies": {},
+  "devDependencies": {}
+}

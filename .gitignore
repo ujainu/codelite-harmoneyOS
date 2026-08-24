@@ -1,0 +1,57 @@
+# ---- Build outputs (never commit) ----
+build/
+.cxx/
+out/
+*.o
+*.a
+*.so
+*.so.*
+*.dylib
+*.dylib.*
+*.dll
+*.exe
+*.tar
+*.bak
+CMakeFiles/
+CMakeCache.txt
+compile_commands.json
+
+# ---- OHOS / IDE / package caches ----
+.hvigor/
+.cxx/
+oh_modules/
+node_modules/
+__pycache__/
+*.pyc
+.idea/
+.vscode/
+local.properties
+
+# ---- Prebuilt native libs are provided via GitHub Release, not committed ----
+entry/libs/
+
+# ---- Logs (kept locally, not uploaded) ----
+docs/logs/
+
+# ---- Recovery / debug snapshots (never commit) ----
+.recovery-from-transcript/
+fw2-file-list.txt
+*-file-list.txt
+
+# ---- runtime-assets is a sync duplicate of entry/src/main/resources/rawfile/share/ ----
+runtime-assets/
+
+# ---- Secrets ----
+.env
+*.local
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.pem
+*.key
+
+# ---- OS noise ----
+.DS_Store
+*.swp
+*~

@@ -1,0 +1,38 @@
+#ifndef %%classItemDef%%
+#define %%classItemDef%%
+
+#include <string>
+
+// %%classTableName%% //////////////////////////////////////////////////////////
+
+/*! \brief Class for %%classTableName%% table */
+class %%classItemName%% {
+
+public:
+	/*! \brief Data record constructor */
+	%%classItemName%%(
+				%%classItemAddParameters%%
+				);
+	
+	/*! \brief Public data accessors */
+	%%classItemGetters%%
+	
+protected:
+
+	%%classItemVariables%%
+};
+
+// %%classTableName%% utilities ////////////////////////////////////////////////
+
+/*! \brief Utils for %%classTableName%% table */
+class %%classUtilName%% {
+
+public:
+	/*! \brief Get CREATE SQL query for %%classTableName%% table */
+	static std::string CreateSql();
+	
+	/*! \brief Get DROP SQL query for %%classTableName%% table */
+	static std::string DropSql();
+};
+
+#endif // %%classItemDef%%
